@@ -2,7 +2,7 @@ import discord
 import os
 import logging
 
-from discord import Message
+from discord import Message, RawReactionActionEvent, Activity, ActivityType
 from discord.ext.commands import Context
 from dotenv import load_dotenv
 from discord.ext import commands
@@ -40,6 +40,7 @@ async def on_ready():
     logger.info(f'Logged in as {bot.user}')
     logger.info(f'I\'m currently in the following servers: {bot.guilds}')
     logger.info(discord.opus.is_loaded())
+    await bot.change_presence(activity=Activity(type=ActivityType.watching, name="Shutup Kyle: The Movie"))
 
 
 '''
@@ -55,6 +56,17 @@ async def on_message(message: Message):
     logger.info(message.content)
     # when using on_message it forbids any extra commands from running. using the below causes it to process commands
     await bot.process_commands(message)
+
+
+@bot.event
+async def on_raw_reaction_add(payload: RawReactionActionEvent):
+    logger.info(f'on_raw_reaction called')
+    logger.info(str(payload))
+    emoji = payload.emoji
+    channel = bot.get_channel(payload.channel_id)
+    message = await channel.fetch_message(payload.message_id)
+
+    await message.add_reaction(emoji)
 
 
 """Below is an example of a Local Error Handler for our command do_repeat"""
