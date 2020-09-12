@@ -15,20 +15,18 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
 PREFIX = os.getenv('PREFIX')
 sqliteDB = os.getenv('SQLITE_DB')
-logger_name = os.getenv('LOGGER_NAME')
+logger_name = os.getenv('MAIN_LOGGER_NAME')
 
 # setup logging
 logger = logging.getLogger(logger_name)
 logger.setLevel(logging.INFO)
-handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+handler = logging.FileHandler(filename=f"{logger_name}", encoding='utf-8', mode='w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
 bot = commands.Bot(command_prefix=PREFIX)
 
-# db connection
-connection = sqlite3.connect(sqliteDB)
-cursor = connection.cursor()
+initial_extensions = ['cogs.DbSqlite']
 
 '''
 Called after login has been successful
@@ -56,6 +54,11 @@ async def on_message(message: Message):
     logger.info(message.content)
     # when using on_message it forbids any extra commands from running. using the below causes it to process commands
     await bot.process_commands(message)
+
+
+"""
+Make the bot react using the same emote.
+"""
 
 
 @bot.event
@@ -97,5 +100,32 @@ async def purge(ctx: Context, amount: int):
     deleted = await ctx.channel.purge(limit=amount)
     await ctx.send(f'Deleted {len(deleted)} message(s)')
 
+
+@bot.command(name='load', help='Loads an extension')
+async def load(extension_name: str):
+    """Loads an extension."""
+    try:
+        print(f'Loading extension {extension_name}.')
+        bot.load_extension(extension_name)
+    except (AttributeError, ImportError) as e:
+        await bot.say("```py\n{}: {}\n```".format(type(e).__name__, str(e)))
+        return
+    await bot.say("{} loaded.".format(extension_name))
+
+
+@bot.command(name='unload', help='Unloads an extension')
+async def unload(extension_name: str):
+    """Unloads an extension."""
+    bot.unload_extension(extension_name)
+    await bot.say("{} unloaded.".format(extension_name))
+
+
+if __name__ == "__main__":
+    for extension in initial_extensions:
+        try:
+            print(f'Load extension {extension}.')
+            bot.load_extension(extension)
+        except Exception as e:
+            print(f'Failed to load extension {extension}.')
 
 bot.run(TOKEN)
